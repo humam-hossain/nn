@@ -130,6 +130,7 @@
     <ClInclude Include="nn.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="adder.cpp" />
     <ClCompile Include="nn.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

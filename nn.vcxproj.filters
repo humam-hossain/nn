@@ -23,5 +23,8 @@
     <ClCompile Include="nn.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="adder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
