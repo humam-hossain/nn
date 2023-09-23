@@ -19,7 +19,8 @@ float td_or[] = {
 
 int main()
 {
-	srand(time(0));
+	//srand(time(0));
+	srand(69);
 
 	float* td = td_xor;
 	size_t stride = 3;
@@ -42,15 +43,14 @@ int main()
 	NN g = nn_alloc(arch, ARRAY_LEN(arch));
 	nn_rand(nn);
 
-	float eps = 1e-1;
 	float rate = 1e-1;
 
-	for (size_t i = 0; i < 50 * 1000; ++i) {
-		nn_finite_diff(nn, g, eps, ti, to);
+	for (size_t i = 0; i < 10*1000; ++i) {
+		nn_backprop(nn, g, ti, to);
 		nn_learn(nn, g, rate);
 	}
 
-	NN_PRINT(nn, 4);
+	NN_PRINT(nn);
 	for (size_t i = 0; i < 2; ++i) {
 		for (size_t j = 0; j < 2; ++j) {
 			MAT_AT(NN_INPUT(nn), 0, 0) = i;
