@@ -1,0 +1,225 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage[margin=1in]{geometry}
+
+
+\begin{document}
+\section{Gradient Descent}
+\begin{align}
+    dC(w) & = \lim_{\epsilon \to 0}\frac{C(w + \epsilon) - C(w)}{\epsilon}
+\end{align}
+
+\subsection{``Twice''}
+\begin{align}
+    C(w) & = \frac{1}{n}\sum_{i=1}^{n}(x_iw - y_i)^2                        \\
+    C'(w)
+         & = \left(\frac{1}{n}\sum_{i=1}^{n}(x_iw - y_i)^2\right)'          \\
+         & = \frac{1}{n}\left(\sum_{i=1}^{n}(x_iw - y_i)^2\right)'          \\
+         & = \frac{1}{n}\sum_{i=1}^{n}\left((x_iw - y_i)^2\right)'          \\
+         & = \frac{1}{n}\sum_{i=1}^{n}2(x_iw - y_i)\left(x_iw - y_i\right)' \\
+         & = \frac{1}{n}\sum_{i=1}^{n}2(x_iw - y_i)x_i
+\end{align}
+
+\subsection{One Neuron Model / Perceptron}
+
+\def\d{2}
+
+\begin{center}
+    \begin{tikzpicture}
+        \node (X) at (-\d,0) {$x$};
+        \node[shape=circle, draw=black] (N) at (0,0) {$\sigma, b$};
+        \node (Y) at (\d,0) {$y$};
+        \path[->] (X) edge node[above] {$w$} (N);
+        \path[->] (N) edge (Y);
+    \end{tikzpicture}
+\end{center}
+
+\begin{align}
+    y          & = \sigma(xw + b)             \\
+    \sigma(x)  & = \frac{1}{1 + e^{-x}}       \\
+    \sigma'(x) & =  \sigma(x) (1 - \sigma(x))
+\end{align}
+
+\subsubsection{Cost}
+
+\def\asum[#1, #2]{\frac{1}{#2} \sum_{#1=0}^#2}
+\begin{align}
+    a_i      & = \sigma(x_iw + b)                                  \\
+    (a_i)'_w & = (\sigma(x_iw + b))'_w                             \\
+             & = a_i(1 - a_i)(x_iw + b)'_w                         \\
+             & = a_i(1 - a_i)x_i                                   \\
+    (a_i)'_b & = a_i(1 - a_i)                                      \\
+    C        & = \asum[i, n] (a_i - y_i)^2                         \\
+    C'_w     & = \left(\asum[i, n] (a_i - y_i)^2\right)'_w         \\
+             & = \asum[i, n] \left((a_i - y_i)^2\right)'_w         \\
+             & = \asum[i, n] 2(a_i - y_i)\left(a_i - y_i\right)'_w \\
+             & = \asum[i, n] 2(a_i - y_i)(a_i)'_w                  \\
+             & = \asum[i, n] 2(a_i - y_i)a_i(1 - a_i)x_i           \\
+    C'_b     & = \asum[i, n] 2(a_i - y_i)a_i(1 - a_i)
+\end{align}
+
+\subsection{One Neuron Model with Two Inputs}
+\begin{center}
+    \begin{tikzpicture}
+        \node (X) at (-\d, 1) {$x$};
+        \node (Y) at (-\d, -1) {$y$};
+        \node[shape=circle, draw=black] (N) at (0, 0) {$\sigma, b$};
+        \node (Z) at (\d,0) {$z$};
+        \path[->] (X) edge node[above] {$w_1$} (N);
+        \path[->] (Y) edge node[above] {$w_2$} (N);
+        \path[->] (N) edge (Z);
+    \end{tikzpicture}
+\end{center}
+
+\begin{align}
+    y          & = \sigma(xw_1 + yw_2 + b)    \\
+    \sigma(x)  & = \frac{1}{1 + e^{-x}}       \\
+    \sigma'(x) & =  \sigma(x) (1 - \sigma(x)) \\
+\end{align}
+
+\subsubsection{Cost}
+
+\def\asum[#1, #2]{\frac{1}{#2} \sum_{#1=0}^#2}
+\begin{align}
+    a_i          & = \sigma(x_iw_1 + y_iw_2 + b)                           \\
+    (a_i)'_{w_1} & = (\sigma(x_iw_1 + y_iw_2 + b))'_{w_1}                  \\
+                 & = a_i(1 - a_i)(x_iw_1 + y_iw_2 + b)'_{w_1}              \\
+                 & = a_i(1 - a_i)x_i                                       \\
+    (a_i)'_{w_2} & = a_i(1 - a_i)y_i                                       \\
+    (a_i)'_b     & = a_i(1 - a_i)                                          \\
+    C            & = \asum[i, n] (a_i - z_i)^2                             \\
+    C'_{w_1}     & = \left(\asum[i, n] (a_i - z_i)^2\right)'_{w_1}         \\
+                 & = \asum[i, n] \left((a_i - z_i)^2\right)'_{w_1}         \\
+                 & = \asum[i, n] 2(a_i - z_i)\left(a_i - z_i\right)'_{w_1} \\
+                 & = \asum[i, n] 2(a_i - z_i)(a_i)'_{w_1}                  \\
+                 & = \asum[i, n] 2(a_i - z_i)a_i(1 - a_i)x_i               \\
+    C'_{w_2}     & = \asum[i, n] 2(a_i - z_i)a_i(1 - a_i)y_i               \\
+    C'_b         & = \asum[i, n] 2(a_i - z_i)a_i(1 - a_i)
+\end{align}
+
+\subsection{Two Neuron Model with One Input}
+\begin{center}
+    \begin{tikzpicture}
+        \node (A0) at (-\d, 0) {$a^{(0)}$};
+        \node[shape=circle, draw=black] (N1) at (0, 0) {$\sigma, b^{(1)}$};
+        \node[shape=circle, draw=black] (N2) at (\d, 0) {$\sigma, b^{(2)}$};
+        \node (A2) at (2*\d, 0) {$a^{(2)}$};
+        \path[->] (A0) edge node[above] {$w^{(1)}$} (N1);
+        \path[->] (N1) edge node[above] {$w^{(2)}$} (N2);
+        \path[->] (N2) edge (A2);
+    \end{tikzpicture}
+\end{center}
+
+\begin{align}
+    a^{(1)} & = \sigma(a^{(0)}w^{(1)} + b^{(1)}) \\
+    a^{(2)} & = \sigma(a^{(1)}w^{(2)} + b^{(2)})
+\end{align}
+
+\subsubsection{Cost}
+\begin{align}
+    a_i^{(1)}              & = \sigma(a_i^{(0)}w^{(1)} + b^{(1)})                                \\
+    a_i^{(2)}              & = \sigma(a_i^{(1)}w^{(2)} + b^{(2)})                                \\
+    (a_i^{(2)})'_{w^{(2)}} & = \left(\sigma(a_i^{(1)}w^{(2)} + b^{(2)})\right)'_{w^{(2)}}        \\
+                           & = a_i^{(2)} (1 - a_i^{(2)}) (a_i^{(1)}w^{(2)} + b^{(2)})'_{w^{(2)}} \\
+                           & = a_i^{(2)} (1 - a_i^{(2)}) a_i^{(1)}                               \\
+    (a_i^{(2)})'_{b^{(2)}} & = \left(\sigma(a_i^{(1)}w^{(2)} + b^{(2)})\right)'_{b^{(2)}}        \\
+                           & = a_i^{(2)} (1 - a_i^{(2)})                                         \\
+    (a_i^{(2)})'_{a^{(1)}} & = \left(\sigma(a_i^{(1)}w^{(2)} + b^{(2)})\right)'_{a^{(1)}}        \\
+                           & = a_i^{(2)} (1 - a_i^{(2)})(a_i^{(1)}w^{(2)} + b^{(2)})'_{a^{(1)}}  \\
+                           & = a_i^{(2)} (1 - a_i^{(2)})w^{(2)}                                  \\
+    (a^{(1)}_i)'_{w^{(1)}} & = \sigma(a_i^{(0)}w^{(1)} + b^{(1)})'_{w^{(1)}}                     \\
+                           & = a^{(1)}_i(1 - a^{(1)}_i)(a_i^{(0)}w^{(1)} + b^{(1)})'_{w^{(1)}}   \\
+                           & = a^{(1)}_i(1 - a^{(1)}_i)a_i^{(0)}                                 \\
+    (a^{(1)}_i)'_{b^{(1)}} & = \sigma(a_i^{(0)}w^{(1)} + b^{(1)})'_{b^{(1)}}                     \\
+                           & = a^{(1)}_i(1 - a^{(1)}_i)                                          \\
+    C^{(2)}                & = \asum[i, n] (a_i^{(2)} - y_i)^2
+\end{align}
+
+\begin{align}
+    C'^{(2)}_{w^{(2)}}   & = \left(\asum[i, n] (a_i^{(2)} - y_i)^2\right)'_{w^{(2)}}            \\
+                         & = \asum[i, n] ((a_i^{(2)} - y_i)^2)'_{w^{(2)}}                       \\
+                         & = \asum[i, n] 2(a_i^{(2)} - y_i)(a_i^{(2)} - y_i)'_{w^{(2)}}         \\
+                         & = \asum[i, n] 2(a_i^{(2)} - y_i)(a_i^{(2)})'_{w^{(2)}}               \\
+                         & = \asum[i, n] 2(a_i^{(2)} - y_i)a_i^{(2)} (1 - a_i^{(2)}) a_i^{(1)}  \\
+    C'^{(2)}_{b^{(2)}}   & = \left(\asum[i, n] (a_i^{(2)} - y_i)^2\right)'_{b^{(2)}}            \\
+                         & = \asum[i, n] 2(a_i^{(2)} - y_i)(a_i^{(2)})'_{b^{(2)}}               \\
+                         & = \asum[i, n] 2(a_i^{(2)} - y_i)a_i^{(2)} (1 - a_i^{(2)})            \\
+    C'^{(2)}_{a_i^{(1)}} & = \left(\asum[i, n] (a_i^{(2)} - y_i)^2\right)'_{a_i^{(1)}}          \\
+                         & = \asum[i, n] ((a_i^{(2)} - y_i)^2)'_{a_i^{(1)}}                     \\
+                         & = \asum[i, n] 2(a_i^{(2)} - y_i)(a_i^{(2)} - y_i)'_{a_i^{(1)}}       \\
+                         & = \asum[i, n] 2(a_i^{(2)} - y_i)(a_i^{(2)})'_{a_i^{(1)}}             \\
+                         & = \asum[i, n] 2(a_i^{(2)} - y_i)a_i^{(2)} (1 - a_i^{(2)})w^{(2)}     \\
+    e^{(1)}_i            & = a^{(1)}_i - C'^{(2)}_{a_i^{(1)}}                                   \\
+    C^{(1)}              & = \asum[i, n] (a^{(1)}_i - e^{(1)}_i)^2                              \\
+    C^{(1)}_{w^{(1)}}    & = \left(\asum[i, n] (a^{(1)}_i - e^{(1)}_i)^2\right)'_{w^{(1)}}      \\
+                         & = \asum[i, n] \left((a^{(1)}_i - e^{(1)}_i)^2\right)'_{w^{(1)}}      \\
+                         & = \asum[i, n] 2(a^{(1)}_i - e^{(1)}_i)(a^{(1)}_i)'_{w^{(1)}}         \\
+                         & = \asum[i, n] 2C'^{(2)}_{a_i^{(1)}}a^{(1)}_i(1 - a^{(1)}_i)a_i^{(0)}
+\end{align}
+
+\begin{align}.
+    C^{(1)}_{b^{(1)}} & = \left(\asum[i, n] (a^{(1)}_i - e^{(1)}_i)^2\right)'_{b^{(1)}} \\
+                      & = \asum[i, n] 2(a^{(1)}_i - e^{(1)}_i)(a^{(1)}_i)'_{b^{(1)}}    \\
+                      & = \asum[i, n] 2C'^{(2)}_{a_i^{(1)}}a^{(1)}_i(1 - a^{(1)}_i)
+\end{align}
+\subsection{Arbitrary Neuron Model with One Input}
+Let's assume that we have $m$ layers.
+\begin{center}
+    \begin{tikzpicture}
+        \node (A0) at (-\d, 0) {$a^{(0)}$};
+        \node[shape=circle, draw=black] (N1) at (0, 0) {$\sigma, b^{(1)}$};
+        \node[shape=circle, draw=black] (N2) at (\d, 0) {$\sigma, b^{(2)}$};
+        \node[circle, draw, inner sep=2pt] (dot1) at (\d*1.85, 0) {};
+        \node[circle, draw, inner sep=2pt] (dot2) at (\d*2.00, 0) {};
+        \node[circle, draw, inner sep=2pt] (dot3) at (\d*2.15, 0) {};
+        \node[shape=circle, draw=black] (NL-1) at (\d*3, 0) {$\sigma, b^{(l-1)}$};
+        \node[shape=circle, draw=black] (NL) at (\d*4, 0) {$\sigma, b^{(l)}$};
+        \node (AL) at (\d*5, 0) {$a^{(l)}$};
+        \path[->] (A0) edge node[above] {$w^{(1)}$} (N1);
+        \path[->] (N1) edge node[above] {$w^{(2)}$} (N2);
+        \path[->] (dot3) edge node[above] {$w^{(l-1)}$} (NL-1);
+        \path[->] (NL-1) edge node[above] {$w^{(l)}$} (NL);
+        \path[->] (N2) edge (dot1);
+        \path[->] (dot3) edge (NL-1);
+        \path[->] (NL-1) edge (NL);
+        \path[->] (NL) edge (AL);
+    \end{tikzpicture}
+\end{center}
+
+\begin{align}
+    a^{(1)} & = \sigma(a^{(0)}w^{(1)} + b^{(1)}) \\
+    a^{(2)} & = \sigma(a^{(1)}w^{(2)} + b^{(2)})
+\end{align}
+\subsubsection{Feed-Forward}
+\begin{align}
+    a_i^{(l)}                & = \sigma(a_i^{(l-1)}w^{(l)} + b^{(l)})                                 \\
+    (a_i^{(l)})'_{w^{(l)}}   & = \left(\sigma(a_i^{(l-1)}w^{(l)} + b^{(l)})\right)'_{w^{(l)}}         \\
+                             & = a_i^{(l)} (1 - a_i^{(l)}) (a_i^{(l-1)}w^{(l)} + b^{(l)})'_{w^{(l)}}  \\
+                             & = a_i^{(l)} (1 - a_i^{(l)}) a_i^{(l-1)}                                \\
+    (a_i^{(l)})'_{b^{(l)}}   & = \left(\sigma(a_i^{(l-1)}w^{(l)} + b^{(l)})\right)'_{b^{(l)}}         \\
+                             & = a_i^{(l)} (1 - a_i^{(l)})                                            \\
+    (a_i^{(l)})'_{a^{(l-1)}} & = \left(\sigma(a_i^{(l-1)}w^{(l)} + b^{(l)})\right)'_{a^{(l-1)}}       \\
+                             & = a_i^{(l)} (1 - a_i^{(l)})(a_i^{(l-1)}w^{(l)} + b^{(l)})'_{a^{(l-1)}} \\
+                             & = a_i^{(l)} (1 - a_i^{(l)})w^{(l)}
+\end{align}
+
+\subsubsection{Back-Propagation}
+Let's denote $C'^{(m+1)}_{a_i^{(m)}}$ as $a_i^{(m)} - y_i$.
+\begin{align}
+    C^{(l)}              & = \asum[i, n] (C'^{(l+1)}_{a_i^{(l)}})^2                                     \\
+    C^{(l)}_{w^{(l)}}    & = \left(\asum[i, n] (C'^{(l+1)}_{a_i^{(l)}})^2\right)'_{w^{(l)}}             \\
+                         & = \asum[i, n] \left((C'^{(l+1)}_{a_i^{(l)}})^2\right)'_{w^{(l)}}             \\
+                         & = \asum[i, n] 2(C'^{(l+1)}_{a_i^{(l)}})(a^{(l)}_i)'_{w^{(l)}}                \\
+                         & = \asum[i, n] 2C'^{(l+1)}_{a_i^{(l)}}a^{(l)}_i(1 - a^{(l)}_i)a_i^{(0)}       \\
+    C^{(l)}_{b^{(l)}}    & = \left(\asum[i, n] (C'^{(l+1)}_{a_i^{(l)}})^2\right)'_{b^{(l)}}             \\
+                         & = \asum[i, n] 2(C'^{(l+1)}_{a_i^{(l)}})(a^{(l)}_i)'_{b^{(l)}}                \\
+                         & = \asum[i, n] 2C'^{(l+1)}_{a_i^{(l)}}a^{(l)}_i(1 - a^{(l)}_i)                \\
+    C'^{l+1}_{a_i^{(l)}} & = \left(\asum[i, n] (C'^{(l+1)}_{a_i^{(l)}})^2\right)'_{a_i^{(l)}}           \\
+                         & = \asum[i, n] ((C'^{(l+1)}_{a_i^{(l)}})^2)'_{a_i^{(l)}}                      \\
+                         & = \asum[i, n] 2(C'^{(l+1)}_{a_i^{(l)}})(C'^{(l+1)}_{a_i^{(l)}})'_{a_i^{(l)}} \\
+                         & = \asum[i, n] 2(C'^{(l+1)}_{a_i^{(l)}})(a_i^{l+1})'_{a_i^{(l)}}              \\
+                         & = \asum[i, n] 2(C'^{(l+1)}_{a_i^{(l)}})a_i^{l+1} (1 - a_i^{l+1})w^{l+1}      \\
+\end{align}
+
+\end{document}
