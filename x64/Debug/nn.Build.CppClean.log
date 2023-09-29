@@ -1,12 +1,13 @@
 e:\github_repo\nn\x64\debug\vc143.pdb
 e:\github_repo\nn\x64\debug\vc143.idb
 e:\github_repo\nn\x64\debug\nn.obj
+e:\github_repo\nn\x64\debug\mat_gen.obj
+e:\github_repo\nn\x64\debug\gym.obj
 e:\github_repo\nn\x64\debug\dump_nn.obj
 e:\github_repo\nn\x64\debug\adder.obj
 e:\github_repo\nn\x64\debug\nn.exe
 e:\github_repo\nn\x64\debug\nn.ilk
 e:\github_repo\nn\x64\debug\nn.pdb
-e:\github_repo\nn\x64\debug\raylib.dll
 e:\github_repo\nn\x64\debug\nn.tlog\cl.command.1.tlog
 e:\github_repo\nn\x64\debug\nn.tlog\cl.items.tlog
 e:\github_repo\nn\x64\debug\nn.tlog\cl.read.1.tlog
@@ -14,4 +15,3 @@ e:\github_repo\nn\x64\debug\nn.tlog\cl.write.1.tlog
 e:\github_repo\nn\x64\debug\nn.tlog\link.command.1.tlog
 e:\github_repo\nn\x64\debug\nn.tlog\link.read.1.tlog
 e:\github_repo\nn\x64\debug\nn.tlog\link.write.1.tlog
-e:\github_repo\nn\x64\debug\nn.tlog\nn.write.1u.tlog

@@ -18,6 +18,9 @@
     <ClInclude Include="nn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="nn.cpp">
@@ -27,6 +30,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="dump_nn.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gym.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mat_gen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

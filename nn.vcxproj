@@ -128,10 +128,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="nn.h" />
+    <ClInclude Include="sv.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="adder.cpp" />
     <ClCompile Include="dump_nn.cpp" />
+    <ClCompile Include="gym.cpp" />
+    <ClCompile Include="mat_gen.cpp" />
     <ClCompile Include="nn.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

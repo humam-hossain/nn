@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 #ifndef NN_MALLOC
 #include <stdlib.h>
@@ -29,6 +30,8 @@ typedef struct {
 } Mat;
 
 Mat mat_alloc(size_t rows, size_t cols);
+void mat_save(FILE *out, Mat m);
+void mat_load(FILE *in, Mat m);
 void mat_fill(Mat a, float x);
 void mat_rand(Mat m, float low = 0, float high = 1);
 Mat mat_row(Mat m, size_t  row);
@@ -85,6 +88,26 @@ Mat mat_alloc(size_t rows, size_t cols)
 	m.es = (float*)NN_MALLOC(sizeof(*m.es) * rows * cols);
 	NN_ASSERT(m.es != nullptr);
 	return m;
+}
+
+void mat_save(FILE* out, Mat m)
+{
+	const char* magic = "nn.h.mat";
+	fwrite(magic, strlen(magic), 1, out);
+	fwrite(&m.rows, sizeof(m.rows), 1, out);
+	fwrite(&m.cols, sizeof(m.cols), 1, out);
+
+	for (size_t i = 0; i < m.rows; ++i) {
+		size_t n = fwrite(&MAT_AT(m, i, 0), sizeof(*m.es), m.cols, out);
+		while (n < m.rows * m.cols && !ferror(out)) {
+			size_t k = fwrite(m.es + n, sizeof(*m.es), m.cols - n, out);
+			n += k;
+		}
+	}
+}
+void mat_load(FILE* in, Mat m)
+{
+
 }
 
 void mat_fill(Mat m, float x)
