@@ -107,16 +107,53 @@ void plot_cost_raylib(Cost_Plot plot, int rx, int ry, int rw, int rh)
 
 	float min, max;
 	cost_plot_minmax(plot, &min, &max);
+	
+	if (min > 0) min = 0;
+	size_t n = plot.count;
+	if (n < 1000) n = 1000;
+
+	Vector2 origin, x_axis, y_axis;
+
+	origin.x = rx + layer_border_hpad;
+	origin.y = ry + layer_border_vpad + rh;
+	x_axis.x = origin.x + rw;
+	x_axis.y = origin.y;
+	y_axis.x = origin.x;
+	y_axis.y = origin.y - rh;
+
+	DrawLineEx(origin, x_axis, rh * 0.005, BLUE);
+	DrawLineEx(origin, y_axis, rh * 0.005, BLUE);
+
+	char buffer[256];
+	float text_font_size = rh * 0.03;
+
+	snprintf(buffer, sizeof(buffer), "%.1f", min);
+	DrawText(buffer, origin.x - rh * 0.06, origin.y + rh * 0.03, text_font_size, WHITE);
+	snprintf(buffer, sizeof(buffer), "%.2f", max);
+	DrawText(buffer, origin.x - rh * 0.06, y_axis.y, text_font_size, WHITE);
+	snprintf(buffer, sizeof(buffer), "%zu", n);
+	DrawText(buffer, x_axis.x, origin.y + rh * 0.03, text_font_size, WHITE);
+
+	Vector2 start, end;
+	start.x = 0;
+	start.y = 0;
+	end.x = 0;
+	end.y = 0;
+
 	for (size_t i = 0; i+1 < plot.count; ++i) {
-		Vector2 start, end;
-		start.x = rx + layer_border_hpad + (float)rw / plot.count * i;
+		start.x = rx + layer_border_hpad + (float)rw / n * i;
 		start.y = ry + layer_border_vpad + (1 - (plot.items[i] - min) / (max - min)) * rh;
-		end.x = rx + layer_border_hpad + (float)rw / plot.count * (i+1);
+		end.x = rx + layer_border_hpad + (float)rw / n * (i+1);
 		end.y = ry + layer_border_vpad + (1 - (plot.items[i+1] - min) / (max - min)) * rh;
-		
 		
 		DrawLineEx(start, end, rh * 0.005, RED);
 	}
+
+	snprintf(buffer, sizeof(buffer), "%f", plot.items[plot.count - 1]);
+	DrawText(buffer, end.x, end.y, text_font_size, WHITE);
+	
+	DrawText("Cost", x_axis.x/2, origin.y + rh * 0.03, text_font_size, WHITE);
+
 }
 
 char* args_shift(int* argc, char*** argv)
@@ -210,15 +247,17 @@ int main(int argc, char **argv)
 	Cost_Plot plot = { 0 };
 	
 	// training neural network and visualization
+	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 	InitWindow(IMG_WIDTH, IMG_HEIGHT, "gym");
 	SetTargetFPS(60);
 
-	size_t i = 0;
+	size_t epoch = 0;
+	size_t max_epoch = 5000;
 	while (!WindowShouldClose()) {
-		if (i < 5000) {
+		for (size_t i = 0; i < 10 && epoch < max_epoch; ++i) {
 			nn_backprop(nn, g, ti, to);
 			nn_learn(nn, g, rate);
-			++i;
+			++epoch;
 			da_append(&plot, nn_cost(nn, ti, to), float);
 		}
 
@@ -227,18 +266,24 @@ int main(int argc, char **argv)
 		ClearBackground(background_color);
 		{
 			int rw, rh, rx, ry;
+			int w = GetRenderWidth();
+			int h = GetRenderHeight();
 
-			rw = IMG_WIDTH / 2;
-			rh = IMG_HEIGHT * 2 / 3;
+			rw = w / 2;
+			rh = h * 2 / 3;
 			rx = 0;
-			ry = IMG_HEIGHT / 2 - rh / 2;
+			ry = h / 2 - rh / 2;
 			plot_cost_raylib(plot, rx, ry, rw, rh);
 
-			rw = IMG_WIDTH / 2;
-			rh = IMG_HEIGHT * 2 / 3;
-			rx = IMG_WIDTH - rw;
-			ry = IMG_HEIGHT / 2 - rh/2;
+			rw = w / 2;
+			rh = h * 2 / 3;
+			rx = w - rw;
+			ry = h / 2 - rh/2;
 			nn_render_raylib(nn, rx, ry, rw, rh);
+
+			char buffer[256];
+			snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f", epoch, max_epoch, rate);
+			DrawText(buffer, 0, 0, h * 0.04, WHITE);
 		}
 		EndDrawing();
 	}
