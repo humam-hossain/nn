@@ -6,4 +6,4 @@ NN is meticulously crafted C-based framework offers a concise yet powerful found
 * Tsoding: https://youtu.be/o7da9anmnMs?list=PLpM-Dvs8t0VZPZKggcql-MmjaBdZKeDMw
 
 ## Neural Network Visualization
-[!vis_nn.png](vis_nn.png)
+![vis_nn.png](vis_nn.png)
