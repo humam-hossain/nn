@@ -134,8 +134,9 @@
     <ClCompile Include="adder.cpp" />
     <ClCompile Include="dump_nn.cpp" />
     <ClCompile Include="gym.cpp" />
-    <ClCompile Include="mat_gen.cpp" />
+    <ClCompile Include="adder_gen.cpp" />
     <ClCompile Include="nn.cpp" />
+    <ClCompile Include="xor_gen.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

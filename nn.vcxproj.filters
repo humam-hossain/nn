@@ -35,7 +35,10 @@
     <ClCompile Include="gym.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mat_gen.cpp">
+    <ClCompile Include="adder_gen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xor_gen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
