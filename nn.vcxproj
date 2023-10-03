@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="nn.h" />
+    <ClInclude Include="stb_image.h" />
     <ClInclude Include="sv.h" />
   </ItemGroup>
   <ItemGroup>
@@ -136,6 +137,7 @@
     <ClCompile Include="gym.cpp" />
     <ClCompile Include="adder_gen.cpp" />
     <ClCompile Include="nn.cpp" />
+    <ClCompile Include="img2mat.cpp" />
     <ClCompile Include="xor_gen.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

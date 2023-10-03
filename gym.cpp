@@ -169,6 +169,7 @@ char* args_shift(int* argc, char*** argv)
 int main(int argc, char **argv)
 {
 	srand(time(0));
+
 	// parse files from arguments
 	const char* program = args_shift(&argc, &argv);
 	
@@ -241,7 +242,6 @@ int main(int argc, char **argv)
 	NN g = nn_alloc(arch.items, arch.count);
 	nn_rand(nn);
 	NN_PRINT(nn);
-	float rate = 0.5;
 
 	// cost
 	Cost_Plot plot = { 0 };
@@ -251,15 +251,23 @@ int main(int argc, char **argv)
 	InitWindow(IMG_WIDTH, IMG_HEIGHT, "gym");
 	SetTargetFPS(60);
 
+	clock_t start, end;
+	float t_speed, est_time;
+
+	float rate = 1.0;
 	size_t epoch = 0;
-	size_t max_epoch = 5000;
+	size_t max_epoch = 10000;
 	while (!WindowShouldClose()) {
+		start = clock();
 		for (size_t i = 0; i < 10 && epoch < max_epoch; ++i) {
 			nn_backprop(nn, g, ti, to);
 			nn_learn(nn, g, rate);
 			++epoch;
 			da_append(&plot, nn_cost(nn, ti, to), float);
 		}
+		end = clock();
+		t_speed = (((float)end - (float)start) / (10 * CLOCKS_PER_SEC));
+		est_time = (max_epoch - epoch) * t_speed;
 
 		BeginDrawing();
 		Color background_color = { 0x18, 0x18, 0x18, 0xFF };
@@ -282,7 +290,7 @@ int main(int argc, char **argv)
 			nn_render_raylib(nn, rx, ry, rw, rh);
 
 			char buffer[256];
-			snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f", epoch, max_epoch, rate);
+			snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Est. Time: %f sec", epoch, max_epoch, rate, est_time);
 			DrawText(buffer, 0, 0, h * 0.04, WHITE);
 		}
 		EndDrawing();
