@@ -1,4 +1,3 @@
-#if 1
 // Gym is a GUI app that trains your NN on the data you give it.
 // The idea is that it will spit out a binary file that can be then loaded up with nn.h and used in your application.
 
@@ -205,10 +204,9 @@ int main(int argc, char **argv)
 		printf("%zu\n", x);
 	}
 
-	FILE* in;
-	errno_t err = fopen_s(&in, data_file_path, "rb");
+	FILE* in = fopen(data_file_path, "rb");
 
-	if (err != 0) {
+	if (in == NULL) {
 		fprintf(stderr, "ERROR: could not open %s\n", data_file_path);
 		return 1;
 	}
@@ -240,7 +238,7 @@ int main(int argc, char **argv)
 	// initialize nural network
 	NN nn = nn_alloc(arch.items, arch.count);
 	NN g = nn_alloc(arch.items, arch.count);
-	nn_rand(nn);
+	nn_rand(nn, 0, 1);
 	NN_PRINT(nn);
 
 	// cost
@@ -298,5 +296,3 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
-#endif

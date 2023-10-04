@@ -34,7 +34,7 @@ Mat mat_alloc(size_t rows, size_t cols);
 void mat_save(FILE *out, Mat m);
 Mat mat_load(FILE *in);
 void mat_fill(Mat a, float x);
-void mat_rand(Mat m, float low = 0, float high = 1);
+void mat_rand(Mat m, float low, float high);
 Mat mat_row(Mat m, size_t  row);
 void mat_copy(Mat dst, Mat src);
 void mat_dot(Mat dst, Mat a, Mat b);
@@ -87,7 +87,7 @@ Mat mat_alloc(size_t rows, size_t cols)
 	m.cols = cols;
 	m.stride = cols;
 	m.es = (float*)NN_MALLOC(sizeof(*m.es) * rows * cols);
-	NN_ASSERT(m.es != nullptr);
+	NN_ASSERT(m.es != NULL);
 	return m;
 }
 
@@ -254,7 +254,7 @@ void nn_zero(NN nn)
 	}
 }
 
-void nn_rand(NN nn, float low = 0, float high = 1)
+void nn_rand(NN nn, float low, float high)
 {
 	for (size_t i = 0; i < nn.count; ++i) {
 		mat_rand(nn.ws[i], low, high);
