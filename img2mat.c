@@ -1,4 +1,3 @@
-#if 0
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
@@ -60,12 +59,12 @@ int main(int argc, char** argv)
 
 	MAT_PRINT(t);
 
-	const char* out_file_path = "img.matrix";
-	FILE* out;
-	errno_t err = fopen_s(&out, out_file_path, "wb");
-
-	if (err != 0) {
+	const char* out_file_path = "img.mat";
+	FILE *out = fopen(out_file_path, "wb");
+	if (out == NULL)
+	{
 		fprintf(stderr, "ERROR: could not open file %s\n", out_file_path);
+
 		return 1;
 	}
 
@@ -75,5 +74,3 @@ int main(int argc, char** argv)
 
 	return 0;
 }
-
-#endif

@@ -1,4 +1,3 @@
-#if 0
 #define NN_IMPLEMENTATION
 #include "nn.h"
 
@@ -36,15 +35,14 @@ int main()
 		MAT_AT(to, i, BITS) = z >= n;
 	}
 
-	const char* out_file_path = "adder.matrix";
-	FILE* out;
-	errno_t err = fopen_s(&out, out_file_path, "wb");
+	const char* out_file_path = "adder.mat";
+	FILE *out = fopen(out_file_path, "wb");
+	if (out == NULL)
+	{
+		fprintf(stderr, "ERROR: could not open file %s\n", out_file_path);
 
-	if (err != 0) {
-		fprintf(stderr, "ERROR: could not open %s\n", out_file_path);
 		return 1;
 	}
-
 	//fprintf(out, "Hello, World\n");
 	mat_save(out, t);
 	fclose(out);
@@ -52,5 +50,3 @@ int main()
 
 
 }
-
-#endif

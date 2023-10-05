@@ -1,5 +1,3 @@
-#if 0
-
 #define NN_IMPLEMENTATION
 #include <time.h>
 #include <math.h>
@@ -7,7 +5,7 @@
 #include "nn.h"
 #include "raylib.h"
 
-#define BITS 2
+#define BITS 4
 
 #define IMG_FACTOR 80
 #define IMG_WIDTH (16 * IMG_FACTOR)
@@ -15,11 +13,8 @@
 
 void nn_render_raylib(NN nn)
 {
-	Color background_color = {0x18, 0x18, 0x18, 0xFF};
 	Color low_color = {0xFF, 0x00, 0xFF, 0xFF};
 	Color high_color = { 0x00, 0xFF, 0x00, 0xFF };
-
-	ClearBackground(background_color);
 
 	int neuron_radius = 25;
 	int layer_border_vpad = 50;
@@ -49,7 +44,7 @@ void nn_render_raylib(NN nn)
 			}
 			// neuron bias color
 			if (l > 0) {
-				high_color.a = floorf(255.f*sigmoidf(MAT_AT(nn.ws[l], 0, i)));
+				high_color.a = floorf(255.f*sigmoidf(MAT_AT(nn.ws[l-1], 0, i)));
 				DrawCircle(cx1, cy1, neuron_radius, ColorAlphaBlend(low_color, high_color, WHITE));
 			}
 			else {
@@ -89,23 +84,29 @@ int main()
 	size_t arch[] = { 2 * BITS, 4*BITS, BITS + 1 };
 	NN nn = nn_alloc(arch, ARRAY_LEN(arch));
 	NN g = nn_alloc(arch, ARRAY_LEN(arch));
-	nn_rand(nn);
+	nn_rand(nn, 0, 1);
 	NN_PRINT(nn);
 
 	float rate = 1;
 
-	size_t i = 0;
+	size_t epoch= 0;
+	size_t max_epoch = 5000;
 	while (!WindowShouldClose()) {
-		if (i < 5000) {
+		if (epoch< max_epoch) {
 			nn_backprop(nn, g, ti, to);
 			nn_learn(nn, g, rate);
-			printf("%zu: cost = %f\n", i, nn_cost(nn, ti, to));
-			++i;
+			++epoch;
 		}
 
 		BeginDrawing();
 		{
+			Color background_color = {0x18, 0x18, 0x18, 0xFF};
+			ClearBackground(background_color);
 			nn_render_raylib(nn);
+
+			char buffer[256];
+			snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f", epoch, max_epoch, rate);
+			DrawText(buffer, 0, 0, IMG_HEIGHT * 0.04, WHITE);
 		}
 		EndDrawing();
 	}
@@ -144,5 +145,3 @@ int main()
 
 	return 0;
 }
-
-#endif

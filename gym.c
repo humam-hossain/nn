@@ -78,7 +78,7 @@ void nn_render_raylib(NN nn, int rx, int ry, int rw, int rh)
 			}
 			// neuron bias color
 			if (l > 0) {
-				high_color.a = floorf(255.f * sigmoidf(MAT_AT(nn.ws[l], 0, i)));
+				high_color.a = floorf(255.f * sigmoidf(MAT_AT(nn.ws[l-1], 0, i)));
 				DrawCircle(cx1, cy1, neuron_radius, ColorAlphaBlend(low_color, high_color, WHITE));
 			}
 			else {
