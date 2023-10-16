@@ -1,4 +1,4 @@
-#if 1
+#if 0
 // Gym is a GUI app that trains your NN on the data you give it.
 // The idea is that it will spit out a binary file that can be then loaded up with nn.h and used in your application.
 

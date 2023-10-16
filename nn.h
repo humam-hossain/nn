@@ -238,8 +238,8 @@ NN nn_alloc(size_t* arch, size_t arch_count)
 
 	for (size_t i = 1; i < arch_count; ++i) {
 		nn.ws[i - 1] = mat_alloc(nn.as[i - 1].cols, arch[i]);
-		nn.bs[i - 1] = mat_alloc(nn.as[i - 1].rows, nn.ws[i - 1].cols);
-		nn.as[i] = mat_alloc(nn.as[i - 1].rows, nn.ws[i - 1].cols);
+		nn.bs[i - 1] = mat_alloc(1, arch[i]);
+		nn.as[i] = mat_alloc(1, arch[i]);
 	}
 
 	return nn;
