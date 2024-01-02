@@ -195,7 +195,10 @@ int main(int argc, char** argv)
 
 	printf("%s size %dX%d %d bits\n", img_file_path, img_width, img_height, img_comp*8);
 
-	Mat t = mat_alloc(img_width * img_height, 3);
+	size_t input = 2;
+	size_t output = 1;
+	size_t arch[] = { input, 7, 7, output };
+	Mat t = mat_alloc(img_width * img_height, input + output);
 
 	for (int y = 0; y < img_height; ++y) {
 		for (int x = 0; x < img_width; ++x) {
@@ -207,25 +210,25 @@ int main(int argc, char** argv)
 		}
 	}
 
-	Mat ti;
-	ti.rows = t.rows;
-	ti.cols = 2;
-	ti.stride = t.stride;
-	ti.es = &MAT_AT(t, 0, 0);
+	mat_shuffle_rows(t);
 
-	Mat to;
-	to.rows = t.rows;
-	to.cols = 1;
-	to.stride = t.stride;
-	to.es = &MAT_AT(t, 0, ti.cols);
-
-	MAT_PRINT(ti);
-	MAT_PRINT(to);
-
-	size_t arch[] = { 2, 7, 4, 1 };
 	NN nn = nn_alloc(arch, ARRAY_LEN(arch));
 	NN g = nn_alloc(arch, ARRAY_LEN(arch));
 	nn_rand(nn, -1.f, 1.f);
+
+	clock_t start, end;
+	float t_speed, est_time = 0;
+
+	float rate = 0.5f;
+	size_t max_epoch = 1e4;
+	size_t epoch = 0;
+
+	size_t batch_size = 28;
+	size_t batch_count = (t.rows + batch_size - 1) / batch_size;
+	size_t batches_per_frame = 100;
+	size_t batch_begin = 0;
+
+	float average_cost = 0.0f;
 
 	// cost
 	Cost_Plot plot = { 0 };
@@ -236,16 +239,23 @@ int main(int argc, char** argv)
 	int IMG_HEIGHT = (9 * IMG_FACTOR);
 
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-	InitWindow(IMG_WIDTH, IMG_HEIGHT, "gym");
+
+	char buffer[256];
+	snprintf(buffer, sizeof(buffer), "%s Upscaling", img_file_path);
+	InitWindow(IMG_WIDTH, IMG_HEIGHT, buffer);
+
 	SetTargetFPS(60);
 
-	clock_t start, end;
-	float t_speed, est_time = 0;
+	// preview images
+	int factor = 3;
+	int prev_width = img_width*factor;
+	int prev_height = img_height*factor;
 
-	float rate = 1.0;
-	size_t epoch = 0;
-	size_t max_epoch = 100*1000;
-	size_t epochs_per_frame = 103;
+	Image original_image = LoadImage(img_file_path);
+	Texture2D original_texture = LoadTextureFromImage(original_image);
+	Image preview_image = GenImageColor(prev_width, prev_height, BLACK);
+	Texture2D preview_texture = LoadTextureFromImage(preview_image);
+
 	bool paused = false;
 
 	while (!WindowShouldClose()) {
@@ -259,21 +269,45 @@ int main(int argc, char** argv)
 			plot.count = 0;
 		}
 
+		if (IsKeyPressed(KEY_C)) {
+			max_epoch += max_epoch / 4;
+		}
+
 		if (!paused) {
 			start = clock();
 		}
 
-		for (size_t i = 0; i < epochs_per_frame && !paused && epoch < max_epoch; ++i) {
-			nn_backprop(nn, g, ti, to);
-			nn_learn(nn, g, rate);
-			++epoch;
-			da_append(&plot, nn_cost(nn, ti, to), float);
-		}
+		for (size_t i = 0; i < batches_per_frame && !paused && epoch < max_epoch; ++i) {
+			size_t size = batch_size;
 
-		if (!paused) {
-			end = clock();
-			t_speed = (((float)end - (float)start) / (10 * CLOCKS_PER_SEC));
-			est_time = (max_epoch - epoch) * t_speed;
+			if (batch_begin + batch_size >= t.rows) {
+				size = t.rows - batch_begin;
+			}
+
+			Mat batch_ti;
+			batch_ti.rows = size;
+			batch_ti.cols = input;
+			batch_ti.stride = t.stride;
+			batch_ti.es = &MAT_AT(t, batch_begin, 0);
+
+
+			Mat batch_to;
+			batch_to.rows = size;
+			batch_to.cols = output;
+			batch_to.stride = t.stride;
+			batch_to.es = &MAT_AT(t, batch_begin, batch_ti.cols);
+
+			nn_backprop(nn, g, batch_ti, batch_to);
+			nn_learn(nn, g, rate);
+			average_cost += nn_cost(nn, batch_ti, batch_to);
+			batch_begin += batch_size;
+
+			if (batch_begin >= t.rows) {
+				++epoch;
+				da_append(&plot, average_cost/batch_count, float);
+				average_cost = 0.0f;
+				batch_begin = 0;
+			}
 		}
 
 		BeginDrawing();
@@ -284,23 +318,61 @@ int main(int argc, char** argv)
 			int w = GetRenderWidth();
 			int h = GetRenderHeight();
 
-			rw = w / 2;
+			rw = w / 3;
 			rh = h * 2 / 3;
 			rx = 0;
 			ry = h / 2 - rh / 2;
 			plot_cost_raylib(plot, rx, ry, rw, rh);
 
-			rw = w / 2;
-			rh = h * 2 / 3;
-			rx = w - rw;
-			ry = h / 2 - rh / 2;
+			rx += rw;
 			nn_render_raylib(nn, rx, ry, rw, rh);
+
+			rx += rw;
+			for (size_t y = 0; y < (size_t)prev_width; ++y) {
+				for (size_t x = 0; x < (size_t)prev_height; ++x) {
+					MAT_AT(NN_INPUT(nn), 0, 0) = (float)x / (prev_width - 1);
+					MAT_AT(NN_INPUT(nn), 0, 1) = (float)y / (prev_height - 1);
+					nn_forward(nn);
+					uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0) * 255.f;
+					ImageDrawPixel(&preview_image, x, y, CLITERAL(Color){pixel, pixel, pixel, 255});
+				}
+			}
+
+			int scale = 15;
+			DrawTextureEx(original_texture, CLITERAL(Vector2) {(float)rx, (float)ry}, 0, scale, WHITE);
+			UpdateTexture(preview_texture, preview_image.data);
+			DrawTextureEx(preview_texture, CLITERAL(Vector2) {(float)rx, (float)(ry + prev_height*scale/factor)}, 0, scale/factor, WHITE);
+
+			if (!paused) {
+				end = clock();
+				t_speed = (((float)end - (float)start) * batch_count/ (batches_per_frame * CLOCKS_PER_SEC));
+				est_time = (max_epoch - epoch) * t_speed;
+			}
 
 			char buffer[256];
 			snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Est. Time: %f sec", epoch, max_epoch, rate, est_time);
 			DrawText(buffer, 0, 0, h * 0.04, WHITE);
 		}
 		EndDrawing();
+	}
+	
+	for (size_t y = 0; y < (size_t)img_height; ++y) {
+		for (size_t x = 0; x < (size_t)img_width; ++x) {
+			uint8_t pixel = img_pixels[y*img_width + x];
+			if (pixel) printf("%3u ", pixel); else printf("    ");
+		}
+		printf("\n");
+	}
+
+	for (size_t y = 0; y < (size_t)img_height; ++y) {
+		for (size_t x = 0; x < (size_t)img_width; ++x) {
+			MAT_AT(NN_INPUT(nn), 0, 0) = (float)x / (img_width - 1);
+			MAT_AT(NN_INPUT(nn), 0, 1) = (float)y / (img_height - 1);
+			nn_forward(nn);
+			uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0) * 255.f;
+			if (pixel) printf("%3u ", pixel); else printf("    ");
+		}
+		printf("\n");
 	}
 
 	size_t out_width = 512;
@@ -318,7 +390,8 @@ int main(int argc, char** argv)
 		}
 	}
 
-	const char* out_file_path = "upscaled.png";
+	char out_file_path[256];
+	snprintf(out_file_path, sizeof(out_file_path), "%s_upscaled.png", img_file_path);
 
 	if (!stbi_write_png(out_file_path, out_width, out_height, 1, out_pixels, out_width * sizeof(*out_pixels))) {
 		fprintf(stderr, "ERROR: could not save image %s\n", out_file_path);

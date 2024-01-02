@@ -47,7 +47,7 @@
     <ClCompile Include="xor_gen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="img2mat.cpp">
+    <ClCompile Include="upscale_img.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

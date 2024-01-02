@@ -41,6 +41,7 @@ void mat_dot(Mat dst, Mat a, Mat b);
 void mat_sum(Mat dst, Mat a);
 void mat_sig(Mat m);
 void mat_print(Mat m, const char* name, size_t padding);
+void mat_shuffle_rows(Mat m);
 #define MAT_PRINT(m) mat_print(m, #m, 0)
 
 // Nural Network
@@ -217,6 +218,20 @@ void mat_print(Mat m, const char* name, size_t padding)
 	printf("%*s]\n", (int)padding, "");
 }
 
+void mat_shuffle_rows(Mat m)
+{
+	for (size_t i = 0; i < m.rows; ++i) {
+		size_t j = i + rand() % (m.rows - i);
+		if (i != j) {
+			for (size_t k = 0; k < m.cols; ++k) {
+				float t = MAT_AT(m, i, k);
+				MAT_AT(m, i, k) = MAT_AT(m, j, k);
+				MAT_AT(m, j, k) = t;
+			}
+		}
+	}
+}
+
 // Nural Network
 NN nn_alloc(size_t* arch, size_t arch_count)
 {
@@ -252,6 +267,8 @@ void nn_zero(NN nn)
 		mat_fill(nn.bs[i], 0.0f);
 		mat_fill(nn.as[i], 0.0f);
 	}
+	
+	mat_fill(nn.as[nn.count], 0.0f);
 }
 
 void nn_rand(NN nn, float low = 0, float high = 1)
@@ -364,6 +381,19 @@ void nn_backprop(NN nn, NN g, Mat ti, Mat to)
 			}
 		}
 	}
+
+	for (size_t i = 0; i < g.count; ++i) {
+        for (size_t j = 0; j < g.ws[i].rows; ++j) {
+            for (size_t k = 0; k < g.ws[i].cols; ++k) {
+                MAT_AT(g.ws[i], j, k) /= n;
+            }
+        }
+        for (size_t j = 0; j < g.bs[i].rows; ++j) {
+            for (size_t k = 0; k < g.bs[i].cols; ++k) {
+                MAT_AT(g.bs[i], j, k) /= n;
+            }
+        }
+    }
 }
 
 

@@ -138,7 +138,7 @@
     <ClCompile Include="gym.cpp" />
     <ClCompile Include="adder_gen.cpp" />
     <ClCompile Include="nn.cpp" />
-    <ClCompile Include="img2mat.cpp" />
+    <ClCompile Include="upscale_img.cpp" />
     <ClCompile Include="xor_gen.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
