@@ -39,7 +39,7 @@ typedef struct {
 	float* items;
 	size_t count;
 	size_t capacity;
-} Cost_Plot;
+} Plot;
 
 size_t arch[] = { 3, 14, 14, 1 };
 
@@ -82,8 +82,13 @@ void nn_render_raylib(NN nn, int rx, int ry, int rw, int rh)
 			}
 			// neuron bias color
 			if (l > 0) {
-				high_color.a = floorf(255.f * sigmoidf(MAT_AT(nn.ws[l - 1], 0, i)));
-				DrawCircle(cx1, cy1, neuron_radius, ColorAlphaBlend(low_color, high_color, WHITE));
+				float value = sigmoidf(MAT_AT(nn.ws[l - 1], 0, i));
+				high_color.a = floorf(255.f * value);
+				Color circle_color = ColorAlphaBlend(low_color, high_color, WHITE);
+				DrawCircle(cx1, cy1, neuron_radius, circle_color);
+				char buffer[256];
+				snprintf(buffer, sizeof(buffer), "%.2f", value);
+				DrawText(buffer, cx1 - rh * 0.01, cy1 - rh * 0.005, rh * 0.01, BLACK);
 			}
 			else {
 				DrawCircle(cx1, cy1, neuron_radius, GRAY);
@@ -92,7 +97,7 @@ void nn_render_raylib(NN nn, int rx, int ry, int rw, int rh)
 	}
 }
 
-void cost_plot_minmax(Cost_Plot plot, float* min, float* max)
+void plot_minmax(Plot plot, float* min, float* max)
 {
 	*min = FLT_MAX;
 	*max = FLT_MIN;
@@ -103,13 +108,13 @@ void cost_plot_minmax(Cost_Plot plot, float* min, float* max)
 	}
 }
 
-void plot_cost_raylib(Cost_Plot plot, int rx, int ry, int rw, int rh)
+void plot_raylib(Plot plot, int rx, int ry, int rw, int rh)
 {
 	int layer_border_hpad = 50;
 	int layer_border_vpad = 50;
 
 	float min, max;
-	cost_plot_minmax(plot, &min, &max);
+	plot_minmax(plot, &min, &max);
 
 	if (min > 0) min = 0;
 	size_t n = plot.count;
@@ -154,9 +159,6 @@ void plot_cost_raylib(Cost_Plot plot, int rx, int ry, int rw, int rh)
 
 	snprintf(buffer, sizeof(buffer), "%f", plot.items[plot.count - 1]);
 	DrawText(buffer, end.x, end.y, text_font_size, WHITE);
-
-	DrawText("Cost", x_axis.x / 2, origin.y + rh * 0.03, text_font_size, WHITE);
-
 }
 
 char* args_shift(int* argc, char*** argv)
@@ -262,8 +264,9 @@ int main(int argc, char** argv)
 
 	float average_cost = 0.0f;
 
-	// cost
-	Cost_Plot plot = { 0 };
+	// plots
+	Plot cost_plot = { 0 };
+	Plot time_plot = { 0 };
 
 	// training neural network and visualization
 	// creating window
@@ -305,7 +308,7 @@ int main(int argc, char** argv)
 		if (IsKeyPressed(KEY_R)) {
 			epoch = 0;
 			nn_rand(nn, -1.f, 1.f);
-			plot.count = 0;
+			cost_plot.count = 0;
 		}
 
 		if (IsKeyPressed(KEY_I)) {
@@ -343,7 +346,7 @@ int main(int argc, char** argv)
 
 			if (batch_begin >= t.rows) {
 				++epoch;
-				da_append(&plot, average_cost/batch_count, float);
+				da_append(&cost_plot, average_cost/batch_count, float);
 				average_cost = 0.0f;
 				batch_begin = 0;
 				mat_shuffle_rows(t);
@@ -364,7 +367,9 @@ int main(int argc, char** argv)
 			rh = h * 2 / 3;
 			rx = 0;
 			ry = h / 2 - rh / 2;
-			plot_cost_raylib(plot, rx, ry, rw, rh);
+			plot_raylib(cost_plot, rx, ry, rw, rh);
+			DrawText("Cost Plot", rx + 25 + rw * 0.5f, ry, rh * 0.03, WHITE);
+			DrawText("Epoch -->", rx + 25 + rw * 0.5f, ry + 50 + rh + rh * 0.03, rh * 0.03, WHITE);
 
 			// instructions render
 			DrawText("Pause -> [SPACE]\t\t\t\t\tReload -> [R]\t\t\t\t\tIncrease Epoch -> [I]", rx + 25, h - 2 * h * 0.02, h * 0.02, WHITE);
@@ -463,7 +468,14 @@ int main(int argc, char** argv)
 				end = clock();
 				t_speed = (((float)end - (float)start) * batch_count/ (batches_per_frame * CLOCKS_PER_SEC));
 				est_time = (max_epoch - epoch) * t_speed;
+				da_append(&time_plot, est_time, float);
 			}
+
+			rx += prev_width * scale / factor;
+			ry += prev_height * 2 * scale / factor;
+			plot_raylib(time_plot, rx, ry, prev_width * scale / factor, prev_height * scale / factor);
+			DrawText("Time Plot", rx + 25 + prev_width * 0.5f * scale / factor, ry + prev_height * scale / factor * 0.03, prev_height * scale / factor * 0.05, WHITE);
+			DrawText("Epoch -->", rx + 25 + prev_width * 0.5f * scale / factor, ry + 50 + prev_height * scale / factor + prev_height * scale / factor * 0.03, prev_height * scale / factor * 0.03, WHITE);
 
 			snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Est. Time: %f sec", epoch, max_epoch, rate, est_time);
 			DrawText(buffer, 0, 0, h * 0.04, WHITE);
