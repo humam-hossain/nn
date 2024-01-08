@@ -7,6 +7,7 @@
 #include <float.h>
 
 #include "raylib.h"
+#include "raymath.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -275,7 +276,7 @@ int main(int argc, char** argv)
 	SetTargetFPS(60);
 
 	// preview images
-	int factor = 1;
+	int factor = 3;
 	int prev_width = img1_width*factor;
 	int prev_height = img1_height*factor;
 
@@ -293,6 +294,7 @@ int main(int argc, char** argv)
 	Texture2D preview_texture = LoadTextureFromImage(preview_image);
 
 	bool paused = false;
+	bool scroll_dragging = false;
 	float scroll = 0.0f;
 
 	while (!WindowShouldClose()) {
@@ -429,11 +431,32 @@ int main(int argc, char** argv)
 			Vector2 size = { prev_width * scale / factor, rh * 0.004f };
 			float knob_radius = rh * 0.01;
 			Vector2 knob_position = { rx + size.x * scroll, position.y + size.y * 0.5f };
+			
 			DrawRectangleV(position, size, WHITE);
 			DrawCircleV(knob_position , knob_radius, RED);
-			
 			snprintf(buffer, sizeof(buffer), "%.2f", scroll);
 			DrawText(buffer, rx + size.x * scroll, position.y + size.y + h * 0.01f, h * 0.005f, WHITE);
+
+			if (scroll_dragging) {
+				float x = GetMousePosition().x;
+
+				if (x < position.x) x = position.x;
+				if (x > position.x + size.x) x = position.x + size.x;
+				scroll = (x - position.x) / size.x;
+			}
+
+			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+				Vector2 mouse_position = GetMousePosition();
+				if (Vector2Distance(mouse_position, knob_position) <= knob_radius) {
+					scroll_dragging = true;
+					printf("[DRAG] True\n");
+				}
+			}
+
+			if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+				scroll_dragging = false;
+				printf("[DRAG] False\n");
+			}
 			
 			// info render
 			if (!paused) {
