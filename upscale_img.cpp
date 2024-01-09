@@ -41,7 +41,7 @@ typedef struct {
 	size_t capacity;
 } Plot;
 
-size_t arch[] = { 3, 14, 14, 1 };
+size_t arch[] = { 3, 11, 11, 11, 11, 11, 1 };
 
 void nn_render_raylib(NN nn, int rx, int ry, int rw, int rh)
 {
@@ -178,16 +178,16 @@ int main(int argc, char** argv)
 	const char* program = args_shift(&argc, &argv);
 
 	if (argc <= 0) {
-		fprintf(stderr, "USAGE: %s <image1> <image2>\n", program);
-		fprintf(stderr, "ERROR: no image1 file is provided\n");
+		fprintf(stderr, "[USAGE] %s <image1> <image2>\n", program);
+		fprintf(stderr, "[ERROR] no image1 file is provided\n");
 
 		return 1;
 	}
 	const char* img1_file_path = args_shift(&argc, &argv);
 
 	if (argc <= 0) {
-		fprintf(stderr, "USAGE: %s <image1> <image2>\n", program);
-		fprintf(stderr, "ERROR: no image2 file is provided\n");
+		fprintf(stderr, "[USAGE] %s <image1> <image2>\n", program);
+		fprintf(stderr, "[ERROR] no image2 file is provided\n");
 
 		return 1;
 	}
@@ -196,31 +196,30 @@ int main(int argc, char** argv)
 	int img1_width, img1_height, img1_comp;
 	uint8_t *img1_pixels= (uint8_t*)stbi_load(img1_file_path, &img1_width, &img1_height, &img1_comp, 0);
 	if (img1_pixels == NULL) {
-		fprintf(stderr, "ERROR: could not read image %s\n", img1_file_path);
+		fprintf(stderr, "[ERROR] could not read image %s\n", img1_file_path);
 		return 1;
 	}
 	if (img1_comp != 1) {
-		fprintf(stderr, "ERROR: %s is %d bits image. Only 8 bit grayscale images are supported\n", img1_file_path, img1_comp * 8);
+		fprintf(stderr, "[ERROR] %s is %d bits image. Only 8 bit grayscale images are supported\n", img1_file_path, img1_comp * 8);
 		
 		return 1;
 	}
 
-	printf("%s size %dX%d %d bits\n", img1_file_path, img1_width, img1_height, img1_comp * 8);
+	printf("[INFO] %s size %dX%d %d bits\n", img1_file_path, img1_width, img1_height, img1_comp * 8);
 
 	int img2_width, img2_height, img2_comp;
 	uint8_t *img2_pixels= (uint8_t*)stbi_load(img2_file_path, &img2_width, &img2_height, &img2_comp, 0);
 	if (img2_pixels == NULL) {
-		fprintf(stderr, "ERROR: could not read image %s\n", img2_file_path);
+		fprintf(stderr, "[ERROR] could not read image %s\n", img2_file_path);
 		return 1;
 	}
 	if (img2_comp != 1) {
-		fprintf(stderr, "ERROR: %s is %d bits image. Only 8 bit grayscale images are supported\n", img1_file_path, img2_comp * 8);
+		fprintf(stderr, "[ERROR] %s is %d bits image. Only 8 bit grayscale images are supported\n", img1_file_path, img2_comp * 8);
 		
 		return 1;
 	}
 
-	printf("%s size %dX%d %d bits\n", img2_file_path, img2_width, img2_height, img2_comp*8);
-
+	printf("[INFO] %s size %dX%d %d bits\n", img2_file_path, img2_width, img2_height, img2_comp*8);
 
 	NN nn = nn_alloc(arch, ARRAY_LEN(arch));
 	NN g = nn_alloc(arch, ARRAY_LEN(arch));
@@ -251,10 +250,13 @@ int main(int argc, char** argv)
 	nn_rand(nn, -1.f, 1.f);
 
 	clock_t start, end;
-	float t_speed, est_time = 0;
+	clock_t real_ts, real_te;
+	float t_speed, time_left = 0.0f;
+	float duration = 0.0f, time_corr = 0.0f;
+	float est_time = 0.0f;
 
-	float rate = 1.0f;
-	size_t max_epoch = 1e4;
+	float max_rate = 1.0f;
+	size_t max_epoch = 5e3;
 	size_t epoch = 0;
 
 	size_t batch_size = 28;
@@ -297,22 +299,63 @@ int main(int argc, char** argv)
 	Texture2D preview_texture = LoadTextureFromImage(preview_image);
 
 	bool paused = false;
-	bool scroll_dragging = false;
-	float scroll = 0.0f;
+	bool interpolate_dragging = false;
+	bool rate_dragging = false;
+	float interpolate = 0.0f;
+	float rate = max_rate;
 
+	real_ts = clock();
 	while (!WindowShouldClose()) {
+		// action keys
 		if (IsKeyPressed(KEY_SPACE)) {
 			paused = !paused;
+
+			printf("[INFO] Paused -> %s", paused ? "True" : "False");
 		}
 
 		if (IsKeyPressed(KEY_R)) {
 			epoch = 0;
 			nn_rand(nn, -1.f, 1.f);
 			cost_plot.count = 0;
+			real_ts = clock();
+			est_time = 0.0f;
+
+			printf("[INFO] Restarted");
 		}
 
 		if (IsKeyPressed(KEY_I)) {
 			max_epoch += max_epoch / 4;
+			est_time = 0.0f;
+
+			printf("[INFO] Max Epoch Increased -> %zu", max_epoch);
+		}
+
+		// generating upscaled output img
+		if (IsKeyPressed(KEY_S)) {
+			size_t out_width = 512;
+			size_t out_height = 512;
+			uint8_t* out_pixels = (uint8_t*)malloc(sizeof(*out_pixels) * out_width * out_height);
+			assert(out_pixels != NULL);
+
+			for (size_t y = 0; y < out_height; ++y) {
+				for (size_t x = 0; x < out_width; ++x) {
+					MAT_AT(NN_INPUT(nn), 0, 0) = (float)x / (out_width - 1);
+					MAT_AT(NN_INPUT(nn), 0, 1) = (float)y / (out_height - 1);
+					MAT_AT(NN_INPUT(nn), 0, 2) = interpolate;
+					nn_forward(nn);
+					uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0) * 255.f;
+					out_pixels[y * out_width + x] = pixel;
+				}
+			}
+
+			char out_file_path[256] = "output/upscaled.png";
+
+			if (!stbi_write_png(out_file_path, out_width, out_height, 1, out_pixels, out_width * sizeof(*out_pixels))) {
+				fprintf(stderr, "[ERROR] could not save image %s\n", out_file_path);
+				return 1;
+			}
+
+			printf("[INFO] Generated %s from %s,%s\n", out_file_path, img1_file_path, img2_file_path);
 		}
 
 		if (!paused) {
@@ -369,10 +412,9 @@ int main(int argc, char** argv)
 			ry = h / 2 - rh / 2;
 			plot_raylib(cost_plot, rx, ry, rw, rh);
 			DrawText("Cost Plot", rx + 25 + rw * 0.5f, ry, rh * 0.03, WHITE);
-			DrawText("Epoch -->", rx + 25 + rw * 0.5f, ry + 50 + rh + rh * 0.03, rh * 0.03, WHITE);
 
 			// instructions render
-			DrawText("Pause -> [SPACE]\t\t\t\t\tReload -> [R]\t\t\t\t\tIncrease Epoch -> [I]", rx + 25, h - 2 * h * 0.02, h * 0.02, WHITE);
+			DrawText("Pause -> [SPACE]\t\t\t\t\tReload -> [R]\t\t\t\t\tIncrease Epoch -> [I]\t\t\t\t\Snapshot Ouput -> [S]", rx + 25, h - 2 * h * 0.02, h * 0.02, WHITE);
 
 			// nn render
 			rx += rw;
@@ -404,7 +446,7 @@ int main(int argc, char** argv)
 				for (size_t x = 0; x < (size_t)prev_height; ++x) {
 					MAT_AT(NN_INPUT(nn), 0, 0) = (float)x / (prev_width - 1);
 					MAT_AT(NN_INPUT(nn), 0, 1) = (float)y / (prev_height - 1);
-					MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
+					MAT_AT(NN_INPUT(nn), 0, 2) = interpolate;
 					nn_forward(nn);
 					uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0) * 255.f;
 					ImageDrawPixel(&preview_image, x, y, CLITERAL(Color){pixel, pixel, pixel, 255});
@@ -432,103 +474,93 @@ int main(int argc, char** argv)
 			DrawTextureEx(preview_texture, CLITERAL(Vector2) {(float)rx, (float)(ry + prev_height * 2 * scale / factor + h * 0.02)}, 0, scale / factor, WHITE);
 
 			// slider
-			Vector2 position = { (float)rx, (float)(ry + prev_height * 3 * scale / factor + h * 0.04) };
-			Vector2 size = { prev_width * scale / factor, rh * 0.004f };
-			float knob_radius = rh * 0.01;
-			Vector2 knob_position = { rx + size.x * scroll, position.y + size.y * 0.5f };
+			{
+				// interpolate slider
+				float knob_radius = rh * 0.01;
+				Vector2 size = { prev_width * scale / factor, rh * 0.004f };
+				Vector2 interpolate_pos = { (float)rx, (float)(ry + prev_height * 3 * scale / factor + h * 0.04) };
+				Vector2 interpolate_knob = { interpolate_pos.x + size.x * interpolate, interpolate_pos.y + size.y * 0.5f };
+				
+				Vector2 rate_pos = { (float)h * 0.06, (float)h * 0.06};
+				Vector2 rate_knob = { rate_pos.x + size.x * rate, rate_pos.y + size.y * 0.5f };
 			
-			DrawRectangleV(position, size, WHITE);
-			DrawCircleV(knob_position , knob_radius, RED);
-			snprintf(buffer, sizeof(buffer), "%.2f", scroll);
-			DrawText(buffer, rx + size.x * scroll, position.y + size.y + h * 0.01f, h * 0.005f, WHITE);
+				DrawRectangleV(interpolate_pos, size, WHITE);
+				DrawCircleV(interpolate_knob , knob_radius, RED);
+				snprintf(buffer, sizeof(buffer), "%.2f", interpolate);
+				DrawText(buffer, interpolate_pos.x + size.x * interpolate, interpolate_pos.y + size.y + h * 0.01f, h * 0.005f, WHITE);
 
-			if (scroll_dragging) {
-				float x = GetMousePosition().x;
+				DrawText("Rate", 0.0f, (float)h * 0.05, h * 0.02f, WHITE);
+				DrawRectangleV(rate_pos, size, WHITE);
+				DrawCircleV(rate_knob , knob_radius, RED);
+				snprintf(buffer, sizeof(buffer), "%.2f", rate);
+				DrawText(buffer, rate_pos.x + size.x * rate, rate_pos.y + size.y + h * 0.01f, h * 0.005f, WHITE);
 
-				if (x < position.x) x = position.x;
-				if (x > position.x + size.x) x = position.x + size.x;
-				scroll = (x - position.x) / size.x;
-			}
+				if (interpolate_dragging) {
+					float x = GetMousePosition().x;
 
-			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-				Vector2 mouse_position = GetMousePosition();
-				if (Vector2Distance(mouse_position, knob_position) <= knob_radius) {
-					scroll_dragging = true;
-					printf("[DRAG] True\n");
+					if (x < interpolate_pos.x) x = interpolate_pos.x;
+					if (x > interpolate_pos.x + size.x) x = interpolate_pos.x + size.x;
+					interpolate = (x - interpolate_pos.x) / size.x;
+				}
+
+				if (rate_dragging) {
+					float x = GetMousePosition().x;
+
+					if (x < rate_pos.x) x = rate_pos.x;
+					if (x > rate_pos.x + size.x) x = rate_pos.x + size.x;
+					rate = (x - rate_pos.x) / size.x;
+				}
+
+				if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+					Vector2 mouse = GetMousePosition();
+					if (Vector2Distance(mouse, interpolate_knob) <= knob_radius) {
+						interpolate_dragging = true;
+						printf("[DRAG] Interpolate ->True\n");
+					}
+					if (Vector2Distance(mouse, rate_knob) <= knob_radius) {
+						rate_dragging = true;
+						printf("[DRAG] Rate -> True\n");
+					}
+				}
+
+				if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+					interpolate_dragging = false;
+					rate_dragging = false;
+					printf("[DRAG] False\n");
 				}
 			}
-
-			if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-				scroll_dragging = false;
-				printf("[DRAG] False\n");
-			}
 			
-			// info render
+			// remaining time calculation
 			if (!paused) {
 				end = clock();
 				t_speed = (((float)end - (float)start) * batch_count/ (batches_per_frame * CLOCKS_PER_SEC));
-				est_time = (max_epoch - epoch) * t_speed;
-				da_append(&time_plot, est_time, float);
+				time_left = (max_epoch - epoch) * t_speed;
+				da_append(&time_plot, time_left, float);
 			}
 
+			if (est_time == 0.0f) {
+				est_time = time_left;
+			}
+
+			// time plot
 			rx += prev_width * scale / factor;
 			ry += prev_height * 2 * scale / factor;
 			plot_raylib(time_plot, rx, ry, prev_width * scale / factor, prev_height * scale / factor);
 			DrawText("Time Plot", rx + 25 + prev_width * 0.5f * scale / factor, ry + prev_height * scale / factor * 0.03, prev_height * scale / factor * 0.05, WHITE);
-			DrawText("Epoch -->", rx + 25 + prev_width * 0.5f * scale / factor, ry + 50 + prev_height * scale / factor + prev_height * scale / factor * 0.03, prev_height * scale / factor * 0.03, WHITE);
 
-			snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Est. Time: %f sec", epoch, max_epoch, rate, est_time);
-			DrawText(buffer, 0, 0, h * 0.04, WHITE);
+			// duration and time correction
+			if (epoch < max_epoch) {
+				real_te = clock();
+				duration = ((float)real_te - (float)real_ts) / CLOCKS_PER_SEC;
+				time_corr = est_time - (duration + time_left);
+			}
+
+			// info render
+			snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %.4f, Time Left: %.2f sec, Est. Time: %.2f%c%.2f sec, Duration: %.2f sec", epoch, max_epoch, rate, time_left, est_time, time_corr < 0 ? '+' : '-', time_corr, duration);
+			DrawText(buffer, 0, 0, h * 0.03, WHITE);
 		}
 		EndDrawing();
 	}
-	
-	// stdout
-	for (size_t y = 0; y < (size_t)img1_height; ++y) {
-		for (size_t x = 0; x < (size_t)img1_width; ++x) {
-			uint8_t pixel = img1_pixels[y*img1_width + x];
-			if (pixel) printf("%3u ", pixel); else printf("    ");
-		}
-		printf("\n");
-	}
-
-	for (size_t y = 0; y < (size_t)img1_height; ++y) {
-		for (size_t x = 0; x < (size_t)img1_width; ++x) {
-			MAT_AT(NN_INPUT(nn), 0, 0) = (float)x / (img1_width - 1);
-			MAT_AT(NN_INPUT(nn), 0, 1) = (float)y / (img1_height - 1);
-			MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
-			nn_forward(nn);
-			uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0) * 255.f;
-			if (pixel) printf("%3u ", pixel); else printf("    ");
-		}
-		printf("\n");
-	}
-
-	// generating upscaled output img
-	size_t out_width = 512;
-	size_t out_height = 512;
-	uint8_t* out_pixels = (uint8_t*)malloc(sizeof(*out_pixels) * out_width * out_height);
-	assert(out_pixels != NULL);
-
-	for (size_t y = 0; y < out_height; ++y) {
-		for (size_t x = 0; x < out_width; ++x) {
-			MAT_AT(NN_INPUT(nn), 0, 0) = (float)x / (out_width - 1);
-			MAT_AT(NN_INPUT(nn), 0, 1) = (float)y / (out_height - 1);
-			MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
-			nn_forward(nn);
-			uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0) * 255.f;
-			out_pixels[y * out_width + x] = pixel;
-		}
-	}
-
-	char out_file_path[256] = "output/upscaled.png";
-
-	if (!stbi_write_png(out_file_path, out_width, out_height, 1, out_pixels, out_width * sizeof(*out_pixels))) {
-		fprintf(stderr, "ERROR: could not save image %s\n", out_file_path);
-		return 1;
-	}
-
-	printf("INFO: Generated %s from %s,%s", out_file_path, img1_file_path, img2_file_path);
 
 	return 0;
 }
